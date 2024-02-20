@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Take Photo and Location</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .button {
+            background-color: #4CAF50; /* Зеленый цвет */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition-duration: 0.4s;
+        }
+        .button:hover {
+            background-color: #45a049; /* Темно-зеленый цвет */
+        }
+        .photo-buttons {
+            margin-top: 20px;
+          
+        }
+        .button p {
+            color : black
+        }
+    </style>
+    <script>
+        async function takePhotoAndLocation(action) {
+            // Захватываем изображение с веб-камеры
+            const photoBlob = await capturePhoto();
+
+            // Получаем текущие координаты местоположения пользователя
+            const { latitude, longitude } = await getCurrentLocation();
+
+            // Создаем форму для отправки изображения и координат на сервер
+            const formData = new FormData();
+            formData.append('photo', photoBlob, 'photo.jpg');
+            formData.append('latitude', latitude);
+            formData.append('longitude', longitude);
+
+            // Отправляем форму на сервер с указанием действия (ПРИШЕЛ или УШЕЛ)
+            formData.append('action', action);
+            await fetch('/take_photo_and_location', {
+                method: 'POST',
+                body: formData
+            });
+
+            // Перенаправляем пользователя обратно на главную страницу
+            window.location.href = '/';
+        }
+
+        async function capturePhoto() {
+            return new Promise((resolve, reject) => {
+                // Получаем доступ к веб-камере
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        // Создаем элемент <video> для просмотра видеопотока
+                        const video = document.createElement('video');
+                        video.srcObject = stream;
+                        video.onloadedmetadata = () => {
+                            // Создаем холст для отрисовки видеопотока
+                            const canvas = document.createElement('canvas');
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            const context = canvas.getContext('2d');
+
+                            // Отрисовываем видеопоток на холсте
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                            // Получаем данные изображения в формате Blob
+                            canvas.toBlob(blob => resolve(blob), 'image/jpeg');
+
+                            // Останавливаем видеопоток
+                            stream.getTracks().forEach(track => track.stop());
+                        };
+                        video.play();
+                    })
+                    .catch(error => {
+                        console.error('Error accessing webcam:', error);
+                        reject(error);
+                    });
+            });
+        }
+
+        async function getCurrentLocation() {
+            return new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const { latitude, longitude } = position.coords;
+                        resolve({ latitude, longitude });
+                    },
+                    error => {
+                        console.error('Error getting current location:', error);
+                        reject(error);
+                    }
+                );
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- <h1>Сделать фото</h1> -->
+        <div class="photo-buttons">
+            <button class="button" onclick="takePhotoAndLocation('ПРИШЕЛ')">
+                <P>Пришел</P>
+                <img src="/static/1111.png" alt="ПРИШЕЛ" width="50" height="50">
+            </button>
+            <button class="button" onclick="takePhotoAndLocation('УШЕЛ')">
+                <p>Ушел</p>
+                <img src="/static/дом.png" alt="УШЕЛ" width="50" height="50">
+            </button>
+        </div>
+    </div>
+</body>
+</html>
